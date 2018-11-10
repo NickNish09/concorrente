@@ -114,19 +114,19 @@ void showTransicao(){
     printf("\n\n");
     showBarco(0);
     sleep(1);
-    system("clear");
+    //system("clear");
     showBarco(5);
     sleep(1);
-    system("clear");
+    //system("clear");
     showBarco(10);
     sleep(1);
-    system("clear");
+    //system("clear");
     showBarco(15);
     sleep(1);
-    system("clear");
+    //system("clear");
     showBarco(20);
     sleep(1);
-    system("clear");
+    //system("clear");
     showBarco(25);
     printf("\n");
 }
@@ -370,6 +370,27 @@ int main(){
         pthread_create(&pais[i], NULL, travessia_pai, (void *)(id));
     }
 
+    for (i = 0; i < QTD_MAE; i++)
+    {
+        id = (int *)malloc(sizeof(int));
+        *id = i;
+        pthread_create(&maes[i], NULL, travessia_mae, (void *)(id));
+    }
+
+    for (i = 0; i < QTD_POLICIAL; i++)
+    {
+        id = (int *)malloc(sizeof(int));
+        *id = i;
+        pthread_create(&policiais[i], NULL, travessia_policial, (void *)(id));
+    }
+
+    for (i = 0; i < QTD_LADRAO; i++)
+    {
+        id = (int *)malloc(sizeof(int));
+        *id = i;
+        pthread_create(&ladroes[i], NULL, travessia_ladrao, (void *)(id));
+    }
+
     for(i = 0; i < QTD_PAI; i++)
     {
         if(pthread_join(pais[i], NULL))
@@ -377,13 +398,6 @@ int main(){
             printf("Falha ao juntar thread %d\n", i);
             return -1;
         }
-    }
-
-    for (i = 0; i < QTD_MAE; i++)
-    {
-        id = (int *)malloc(sizeof(int));
-        *id = i;
-        pthread_create(&maes[i], NULL, travessia_mae, (void *)(id));
     }
 
     for(i = 0; i < QTD_MAE; i++)
@@ -395,13 +409,6 @@ int main(){
         }
     }
 
-    for (i = 0; i < QTD_POLICIAL; i++)
-    {
-        id = (int *)malloc(sizeof(int));
-        *id = i;
-        pthread_create(&policiais[i], NULL, travessia_policial, (void *)(id));
-    }
-
     for(i = 0; i < QTD_POLICIAL; i++)
     {
         if(pthread_join(policiais[i], NULL))
@@ -409,13 +416,6 @@ int main(){
             printf("Falha ao juntar thread %d\n", i);
             return -1;
         }
-    }
-
-    for (i = 0; i < QTD_LADRAO; i++)
-    {
-        id = (int *)malloc(sizeof(int));
-        *id = i;
-        pthread_create(&ladroes[i], NULL, travessia_ladrao, (void *)(id));
     }
 
     for(i = 0; i < QTD_LADRAO; i++)
@@ -426,8 +426,6 @@ int main(){
             return -1;
         }
     }
-
-    showTransicao();
 
     return 0;
 }
