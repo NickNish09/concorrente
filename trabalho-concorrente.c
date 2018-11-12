@@ -34,6 +34,7 @@ pthread_t filhas[QTD_FILHAS];
 
 sem_t free_pos_boat;
 pthread_cond_t condicao_parada_criancas = PTHREAD_COND_INITIALIZER;
+pthread_cond_t condicao_parada_pais = PTHREAD_COND_INITIALIZER;
 
 pthread_mutex_t barco = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lock_adultos = PTHREAD_MUTEX_INITIALIZER;
@@ -43,6 +44,7 @@ pthread_mutex_t lock_criancas = PTHREAD_MUTEX_INITIALIZER;
 int qtd_total_pessoas = QTD_FILHOS + QTD_FILHAS + QTD_PAI + QTD_MAE + QTD_POLICIAL + QTD_LADRAO + QTD_LUGARES_BARCO;
 int pessoas_do_outro_lado = 0;
 int adultos_no_barco = 0;
+int ladroes_no_barco = 0;
 
 int barcaca[QTD_LUGARES_BARCO];
 
@@ -200,18 +202,18 @@ void * travessia_filhos(void * arg){
 
         printf("Filho %d: Cheguei do outro lado!\n",id);
 
-        //aumenta as posições permitidas do barco
+        //Libera posicao
         if(barcaca[0] == FILHO){
             barcaca[0] = VAZIO;
         } else {
             barcaca[1] = VAZIO;
         }
-        //Libera posicao
+        //aumenta as posições permitidas do barco
         sem_post(&free_pos_boat);
 
         pthread_mutex_unlock(&lock_criancas);
 
-        sleep(2);
+        sleep(4);
     }
 }
 
@@ -219,6 +221,10 @@ void * travessia_pai(void * arg){
     int id = *((int*)arg);
     while(TRUE){
         int pos_free = 0;
+        while(ladroes_no_barco == 1){
+            printf("Pai %d: Ha ladroes no barco! Vou esperar o policial leva-los\n",id);
+            pthread_cond_wait(&condicao_parada_pais,&barco);
+        }
         //diminui as posições permitidas do barco
         sem_wait(&free_pos_boat);
         printf("Pai %d: consegui entrar no barco!\n",id);
@@ -249,13 +255,17 @@ void * travessia_pai(void * arg){
         pthread_mutex_unlock(&lock_adultos);
         //aumenta as posições permitidas do barco
         sem_post(&free_pos_boat);
-        sleep(10);
+        sleep(7);
     }
 }
 
 void * travessia_mae(void * arg){    
     int id = *((int*)arg);
     while(TRUE){
+        while(ladroes_no_barco == 1){
+            printf("Mae %d: Ha ladroes no barco! Vou esperar o policial leva-los\n",id);
+            pthread_cond_wait(&condicao_parada_pais,&barco);
+        }
         //diminui as posições permitidas do barco
         sem_wait(&free_pos_boat);
         printf("Mae %d: consegui entrar no barco!\n",id);
@@ -287,7 +297,7 @@ void * travessia_mae(void * arg){
             barcaca[1] = VAZIO;
         }
         sem_post(&free_pos_boat);
-        sleep(10);
+        sleep(7);
     }
 }
 
@@ -304,6 +314,8 @@ void * travessia_policial(void * arg){
         } else {
             barcaca[1] = POLICIAL;
         }
+
+        pthread_cond_broadcast(&condicao_parada_pais);
         //Se conseguiu pegar uma das posições do barco, incrementa o número de adultos para mostrar que pode-se atravessar as crianças
         pthread_mutex_lock(&lock_adultos);
         adultos_no_barco++;
@@ -328,7 +340,7 @@ void * travessia_policial(void * arg){
             barcaca[1] = VAZIO;
         }
         sem_post(&free_pos_boat);
-        sleep(10);
+        sleep(7);
     }
 }
 
@@ -339,15 +351,15 @@ void * travessia_ladrao(void * arg){
         //diminui as posições permitidas do barco
         sem_wait(&free_pos_boat);
         printf("Ladrao %d: Consegui entrar no barco...\n",id);
-
+        ladroes_no_barco++;
         if(barcaca[0] == VAZIO){
             barcaca[0] = LADRAO;
         } else {
             barcaca[1] = LADRAO;
         }
-        //enquanto nao tem adultos no barco, filhas esperam
+    
         while(adultos_no_barco == 0){
-            printf("Ladrao %d: Nenhum adulto pra dirigir o barco...Vou esperar\n",id);
+            printf("Ladrao %d: Nenhum policial pra dirigir o barco...Vou esperar\n",id);
             pthread_cond_wait(&condicao_parada_criancas,&barco);
         }
 
@@ -364,6 +376,8 @@ void * travessia_ladrao(void * arg){
         } else {
             barcaca[1] = VAZIO;
         }
+
+        ladroes_no_barco--;
         sem_post(&free_pos_boat);
 
         pthread_mutex_unlock(&lock_criancas);
